@@ -7,3 +7,16 @@ requires-python = ">=3.14"
 dependencies = [
     "fastapi[standard]>=0.139.0",
 ]
+
+[tool.ruff]
+unsafe-fixes = true
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "UP", "B", 
+    "SIM",   # Required for Example 2 (SIM401)
+    "PTH",   # Required for Example 3 (PTH118)
+    "RET",   # Required for Example 4 (RET505)
+    "PERF",  # Required for Examples 1 & 5 (PERF401, PERF601)
+]
+
