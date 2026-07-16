@@ -14,19 +14,19 @@ task_id_count = 3
 
 app = FastAPI()
 
-@app.get("/")
+@app.get("/",  summary="Root route for information on backend", description="Retrieved JSON include name, version, and a list of endpoints")
 def read_root():
     return {"name": "Task API", "version": "1.0", "endpoints": ["/tasks"]}
 
-@app.get("/health")
+@app.get("/health", description="Returns the status of backend", summary="Health Route")
 def check_health():
     return {"status": "ok"}
 
-@app.get("/tasks")
+@app.get("/tasks", response_model= list[Task], summary="Get all tasks")
 def get_all_tasks():
     return tasks
 
-@app.get("/tasks/{id}")
+@app.get("/tasks/{id}", response_model= Task, summary="Retrieves a specific task", description="Fetches a task from tasks list by its unique id and return its details")
 def get_task(id: int):
     for t in tasks:
         if(t.id == id):
@@ -40,7 +40,7 @@ class TaskCreate(BaseModel):
     title: str=Field(min_length=3, max_length=25)
     done: bool | None = False
 
-@app.post("/tasks", status_code=201)
+@app.post("/tasks", response_model= Task, status_code=201, summary="Create a task", description="Appends a new task in tasks list and assign it a unique id and provided details")
 def create_task(task: TaskCreate):
     newTitle = task.title.strip()
     if(not newTitle):
@@ -65,8 +65,14 @@ class TaskUpdate(BaseModel):
     done: bool 
 
 # task_id = task index in the tasks array
-@app.put("/tasks/{id}")
+@app.put("/tasks/{id}", response_model= Task, summary="Update a task full body", description="Performs a **complete replacement** of an existing task's properties.")
 def update_task(id: int, new_task: TaskUpdate):
+    new_task.title = new_task.title.strip()
+    if(not new_task.title):
+        raise HTTPException(
+            status_code= status.HTTP_400_BAD_REQUEST,
+            detail= f"Title Missing!"
+        )
     task_id = find_by_id(id)
     if(task_id == -1):
         raise HTTPException(
@@ -77,29 +83,32 @@ def update_task(id: int, new_task: TaskUpdate):
     tasks[task_id].done = new_task.done
     return tasks[task_id]
     
+class TaskPatch(BaseModel):
+    title: str | None = Field(default=None, min_length=3, max_length=25)
+    done: bool | None = None
 
-@app.patch("/tasks/{id}")
-def patch_task(id: int, title: Annotated[str | SkipJsonSchema[None], Query(min_length=3, max_length=25)] = None, done: Annotated[bool | SkipJsonSchema[None], Query()] = None):
+@app.patch("/tasks/{id}", response_model= Task, summary="Updates one or more attributes of a task", description="Updates the provided attribute of task either done or title or both, slightly different from PUT request as PUT requires whole body")
+def patch_task(id: int, task: TaskPatch):
     task_id = find_by_id(id)
     if(task_id == -1):
         raise HTTPException(
             status_code= status.HTTP_404_NOT_FOUND,
             detail= f"Task with {id} not found"
         )
-    if title is None and done is None:
+    if task.title is None and task.done is None:
         raise HTTPException(
             status_code= status.HTTP_400_BAD_REQUEST,
             detail= "Missing title and status!"
         )
-    if title is not None:
-        title = title.strip()
-        if title:
-            tasks[task_id].title = title
-    if done is not None:
-        tasks[task_id].done = done
+    if task.title is not None:
+        task.title = task.title.strip()
+        if task.title:
+            tasks[task_id].title = task.title
+    if task.done is not None:
+        tasks[task_id].done = task.done
     return tasks[task_id]
 
-@app.delete("/tasks/{id}", status_code=204)
+@app.delete("/tasks/{id}", response_model= None, status_code= status.HTTP_204_NO_CONTENT, summary="Deletes task")
 def delete_task(id: int):
     task_id = find_by_id(id)
     if(task_id == -1):
@@ -108,3 +117,4 @@ def delete_task(id: int):
             detail= f"Task with {id} not found"
         ) 
     tasks.pop(task_id)
+    return None
