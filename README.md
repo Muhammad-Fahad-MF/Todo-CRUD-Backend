@@ -27,6 +27,65 @@ Since this assignment was setup with the help of **uv** so we rely on uv package
 Checkout Swagger UI on `http://localhost:8000/docs` for more details about endpoints.
 
 ---
+### Swagger Screenshot:
 
-### Mortality Experiment
+![Swagger UI Screenshot](./swagger_screenshot.png)
+
+---
+### CURL Command Output:
+Here is a create command for curl:
+```
+curl -X 'POST' \
+  'http://localhost:8000/tasks' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "title": "Learn Next JS",
+  "done": false
+}'
+```
+
+and here is its output:
+`{"id":6,"title":"Learn Next JS","done":false}`
+
+---
+### Mortality Experiment:
 When I created some tasks, updated them and even deleted some. The get api was showing me all changes but as soon as I restart the server, all changes were gone. It happened because my changes were saving in RAM in the form of list in my pyhton program. To store it permanently so that I can access it even after program ends, I have to store it in my disk drive in the form of file. 
+
+---
+
+### AI VS ME
+
+Below is the prompt I provided to Google Antigravity for this Assignment:
+
+#### Prompt: 
+```
+Build a todo backend in fastapi python in a single .py file. use REST API conventions and rules while coding. use pydantic validation for each request and response where possible by using pydantic models.
+For simplicity use a python list of Task Model. 
+
+Task has these attributes only --> id, title, and done
+in task list initialize 3 generic tasks.
+
+And build the following endpoints:
+1. root --> root endpoint for fetching name, version, and available endpoints(array) in JSON
+2. health --> health endpoint to return the status of backend, like --> status: ok  in JSON
+3. get all tasks --> this endpoint should return the whole list of tasks if no query parameters, and there are 2 parameters for this endpoint: 
+	i. done(returns the list of same status tasks) ii. search(returns the list of tasks which contains the search string) #both are optional but can be passed simultaneously
+4. get task --> this endpoint fetches a specific task from list with the same id
+5. create task --> this endpoint creates task but only take title and done in body, also id given to new task is based on a counter which is incremented when each task is created. status code = 201
+6. updates task --> this endpoint(PUT) takes an id and a body with title and done both, and updates the whole of task with id provided to the provided body.
+7. patch task --> this endpoint(PATCH) takes an id to update and a body with either done or title or both. slightly different from PUT as it is REST convention to use PATCH for single attribute changes.
+8. delete task --> this endpoint takes an id and delete that task, and return nothing with 204
+9. stats --> this endpoint computes tasks stats and returns a JSON body with total, completed, and pending tasks.
+10. reset --> this endpoint serves for testing purpose, and it clears the list and retores 3 generic original tasks in the list.
+
+Use proper HTTP codes like 404, 400, etc where necessary.
+
+Ask me questions if you have any ambiguity regarding this assignment.
+```
+
+#### Verdict:
+1. AI writes more pythonic code like using enumerates for loop, while I relied on C style for loop.
+2. AI summary and description are more professional and cocise than me, AI used docstring for description while I used description attribute in decorator which make AI code more clean.
+3. It took me a whole day(including breaks) figuring out and completing this assignment, but for AI it took only **4 seconds**.
+4. It did exactly what I asked no more no less. I guess my prompt is good and **GEMINI 3.5** is very powerful model.
