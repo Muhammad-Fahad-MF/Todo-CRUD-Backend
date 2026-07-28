@@ -1,32 +1,30 @@
 from src.db.task_repository import (
-   # db_create,
+    db_create,
    # db_delete,
     db_get_all,
     db_get_by_id,
    # db_update
 )
 from src.models.task_models import Task #, Stats, TaskCreate, TaskPatch, TaskUpdate
-from src.db.database import SessionDep
+from sqlmodel import Session
 
 
-def get_all_tasks(session: SessionDep) -> list[Task]:
+def get_all_tasks(session: Session) -> list[Task]:
     """Business layer to retrieve all tasks with optional query filters."""
     return db_get_all(session)
 
 
-def get_task_by_id(task_id: int, session: SessionDep) -> Task | None:
+def get_task_by_id(task_id: int, session: Session) -> Task | None:
     """Business layer to retrieve a single task by ID."""
     return db_get_by_id(task_id, session)
 
 
-# def create_task(task_data: TaskCreate) -> Task:
-#     """Business layer to sanitize input and create a new task."""
-#     clean_title = task_data.title.strip()
-#     if not clean_title:
-#         raise ValueError("Title cannot be empty")
-
-#     is_done = task_data.done if task_data.done is not None else False
-#     return db_create(title=clean_title, done=is_done)
+def create_task(title: str, session: Session) -> Task:
+    """Business layer to sanitize input and create a new task."""
+    clean_title = title.strip()
+    if not clean_title:
+        raise ValueError("Title cannot be empty")
+    return db_create(title= clean_title, done= False, session= session)
 
 
 # def update_task(task_id: int, task_data: TaskUpdate) -> Task | None:

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
-from src.models.task_models import Task #, Stats, TaskCreate, TaskPatch, TaskUpdate, ResetResponse
+from src.models.task_models import Task, TaskCreate# TaskPatch, TaskUpdate, ResetResponse, Stats
 from src.services import task_service
 from src.db.database import SessionDep
 
@@ -41,20 +41,20 @@ def get_task(id: int, session: SessionDep):
     return task
 
 
-# @router.post(
-#     "",
-#     response_model=Task,
-#     status_code=status.HTTP_201_CREATED,
-#     summary="Create a task",
-#     description="Appends a new task in tasks list and assigns it a unique id.",
-# )
-# def create_task(task: TaskCreate):
-#     try:
-#         return task_service.create_task(task)
-#     except ValueError as err:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
-#         ) from err
+@router.post(
+    "",
+    response_model=Task,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a task",
+    description="Appends a new task in tasks list and assigns it a unique id.",
+)
+def create_task(payload: TaskCreate, session: SessionDep):
+    try:
+        return task_service.create_task(title= payload.title, session = session)
+    except ValueError as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
+        ) from err
 
 
 # @router.put(

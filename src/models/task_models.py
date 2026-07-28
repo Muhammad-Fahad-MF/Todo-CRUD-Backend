@@ -9,13 +9,12 @@ from sqlmodel import SQLModel, Field
 
 class Task(SQLModel, table= True):
     id: int | None = Field(default=None, primary_key=True)
-    title: str = Field(min_length=3, max_length=25)
+    title: str = Field(min_length=3, max_length=55)
     done: bool = Field(default= False)
 
 
 class TaskCreate(BaseModel):
-    title: str = Field(min_length=3, max_length=25)
-    done: bool | None = False
+    title: str = Field(min_length=3, max_length=55)
 
 
 class TaskUpdate(BaseModel):

@@ -20,3 +20,10 @@ def db_get_all(session: Session) -> list[Task] | None:
 
 def db_get_by_id(task_id: int, session: Session) -> Task | None:
     return session.get(Task, task_id)
+
+def db_create(title: str, done: bool, session: Session) -> Task:
+    task = Task(title = title, done = done)
+    session.add(task)
+    session.commit()
+    session.refresh(task)
+    return task
