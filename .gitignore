@@ -12,3 +12,7 @@ wheels/
 #Environment Variables File
 .env
 *.env
+
+# Database file
+todo.db
+*.db
