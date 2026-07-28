@@ -89,3 +89,23 @@ Ask me questions if you have any ambiguity regarding this assignment.
 2. AI summary and description are more professional and cocise than me, AI used docstring for description while I used description attribute in decorator which make AI code more clean.
 3. It took me a whole day(including breaks) figuring out and completing this assignment, but for AI it took only **4 seconds**.
 4. It did exactly what I asked no more no less. I guess my prompt is good and **GEMINI 3.5** is very powerful model.
+
+
+---
+
+## Database:
+
+I attached a sqlite database to my backend by replacing in-memory list. So that data can persist even after restart.
+
+Here is one sql command I used in DB Viewer:  
+` SELECT * FROM task WHERE done = 1 `  
+SQLite uses 0/1 for boolen.   
+
+Which results in returning tasks with done status of 1 (True).
+
+### Why SQLite:
+SQLite requires no setup at all as it comes with pyhton itself, Also as I used Fast API Framework for Backend, so I used SQLModel for DB Operations.   
+
+#### Screenshot of the todo.db from DB Viewer:
+
+![DB Viewer Database Screenshot](./database_screenshot.png)
