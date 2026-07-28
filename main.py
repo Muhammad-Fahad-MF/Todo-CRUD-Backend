@@ -4,13 +4,12 @@ from pydantic import BaseModel
 import uvicorn
 
 from src.routes.task_routes import router as task_router
-from src.services.task_service import reset_tasks
-
+from src.db.database import create_db_and_tables
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # Seed default tasks when application starts
-    reset_tasks()
+    create_db_and_tables()
     yield
 
 

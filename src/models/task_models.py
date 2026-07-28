@@ -1,10 +1,16 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from sqlmodel import SQLModel, Field
 
 
-class Task(BaseModel):
-    id: int
+# class Task(BaseModel):
+#     id: int
+#     title: str = Field(min_length=3, max_length=25)
+#     done: bool
+
+class Task(SQLModel, table= True):
+    id: int | None = Field(default=None, primary_key=True)
     title: str = Field(min_length=3, max_length=25)
-    done: bool
+    done: bool = Field(default= False)
 
 
 class TaskCreate(BaseModel):
