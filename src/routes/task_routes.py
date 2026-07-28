@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
-from src.models.task_models import Task, TaskCreate# TaskPatch, TaskUpdate, ResetResponse, Stats
+from src.models.task_models import Task, TaskCreate, TaskUpdate, TaskPatch #, ResetResponse, Stats
 from src.services import task_service
 from src.db.database import SessionDep
 
@@ -57,57 +57,58 @@ def create_task(payload: TaskCreate, session: SessionDep):
         ) from err
 
 
-# @router.put(
-#     "/{id}",
-#     response_model=Task,
-#     summary="Update a task full body",
-#     description="Performs a complete replacement of an existing task's properties.",
-# )
-# def update_task(id: int, new_task: TaskUpdate):
-#     try:
-#         updated = task_service.update_task(id, new_task)
-#         if updated is None:
-#             raise HTTPException(
-#                 status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with ID {id} not found"
-#             )
-#         return updated
-#     except ValueError as err:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
-#         ) from err
+@router.put(
+    "/{id}",
+    response_model=Task,
+    summary="Update a task full body",
+    description="Performs a complete replacement of an existing task's properties.",
+)
+def update_task(id: int, payload: TaskUpdate, session: SessionDep):
+    try:
+        updated = task_service.update_task(id, payload, session)
+        if updated is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with ID {id} not found"
+            )
+        return updated
+    except ValueError as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
+        ) from err
 
 
-# @router.patch(
-#     "/{id}",
-#     response_model=Task,
-#     summary="Updates one or more attributes of a task",
-#     description="Updates the provided attributes of task (done, title, or both).",
-# )
-# def patch_task(id: int, task: TaskPatch):
-#     try:
-#         patched = task_service.patch_task(id, task)
-#         if patched is None:
-#             raise HTTPException(
-#                 status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with ID {id} not found"
-#             )
-#         return patched
-#     except ValueError as err:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
-#         ) from err
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Deletes task",
+)
+def delete_task(id: int, session: SessionDep):
+    try:
+        task_service.delete_task(id, session)
+    except ValueError as err:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(err)
+        ) from err
 
 
-# @router.delete(
-#     "/{id}",
-#     status_code=status.HTTP_204_NO_CONTENT,
-#     summary="Deletes task",
-# )
-# def delete_task(id: int):
-#     success = task_service.delete_task(id)
-#     if not success:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with ID {id} not found"
-#         )
+@router.patch(
+    "/{id}",
+    response_model=Task,
+    summary="Updates one or more attributes of a task",
+    description="Updates the provided attributes of task (done, title, or both).",
+)
+def patch_task(id: int, task: TaskPatch, session: SessionDep):
+    try:
+        patched = task_service.patch_task(id, task, session)
+        if patched is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with ID {id} not found"
+            )
+        return patched
+    except ValueError as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
+        ) from err
 
 
 # @router.post("/reset", response_model=ResetResponse, summary="Reset tasks list to initial state")

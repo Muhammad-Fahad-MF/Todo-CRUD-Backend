@@ -1,11 +1,11 @@
 from src.db.task_repository import (
     db_create,
-   # db_delete,
+    db_delete,
     db_get_all,
     db_get_by_id,
-   # db_update
+    db_update
 )
-from src.models.task_models import Task #, Stats, TaskCreate, TaskPatch, TaskUpdate
+from src.models.task_models import Task, TaskUpdate, TaskPatch #, Stats
 from sqlmodel import Session
 
 
@@ -27,39 +27,41 @@ def create_task(title: str, session: Session) -> Task:
     return db_create(title= clean_title, done= False, session= session)
 
 
-# def update_task(task_id: int, task_data: TaskUpdate) -> Task | None:
-#     """Business layer to validate input and update an existing task."""
-#     clean_title = task_data.title.strip()
-#     if not clean_title:
-#         raise ValueError("Title cannot be empty")
-
-#     return db_update(task_id=task_id, title=clean_title, done=task_data.done)
-
-
-# def patch_task(task_id: int, task_data: TaskPatch) -> Task | None:
-#     """Business layer for partial update (PATCH) merging existing state with new fields."""
-#     existing_task = db_get_by_id(task_id)
-#     if existing_task is None:
-#         return None
-
-#     if task_data.title is None and task_data.done is None:
-#         raise ValueError("At least one field (title or done) must be provided")
-
-#     new_title = existing_task.title
-#     if task_data.title is not None:
-#         clean_title = task_data.title.strip()
-#         if not clean_title:
-#             raise ValueError("Title cannot be empty")
-#         new_title = clean_title
-
-#     new_done = task_data.done if task_data.done is not None else existing_task.done
-
-#     return db_update(task_id=task_id, title=new_title, done=new_done)
+def update_task(task_id: int, task_data: TaskUpdate, session: Session) -> Task | None:
+    """Business layer to validate input and update an existing task."""
+    clean_title = task_data.title.strip()
+    if not clean_title:
+        raise ValueError("Title cannot be empty")
+    return db_update(task_id= task_id, title= clean_title, done=task_data.done, session= session)
 
 
-# def delete_task(task_id: int) -> bool:
-#     """Business layer to delete a task."""
-#     return db_delete(task_id)
+def delete_task(task_id: int, session: Session) -> bool:
+    """Business layer to delete a task."""
+    delete = db_delete(task_id = task_id, session= session)
+    if not delete:
+        raise ValueError(f"Task with {task_id} does not exist")
+
+
+
+def patch_task(task_id: int, task_data: TaskPatch, session: Session) -> Task | None:
+    """Business layer for partial update (PATCH) merging existing state with new fields."""
+    existing_task = db_get_by_id(task_id, session)
+    if existing_task is None:
+        return None
+
+    if task_data.title is None and task_data.done is None:
+        raise ValueError("At least one field (title or done) must be provided")
+
+    new_title = existing_task.title
+    if task_data.title is not None:
+        clean_title = task_data.title.strip()
+        if not clean_title:
+            raise ValueError("Title cannot be empty")
+        new_title = clean_title
+
+    new_done = task_data.done if task_data.done is not None else existing_task.done
+
+    return db_update(task_id=task_id, title=new_title, done=new_done, session= session)
 
 
 # def get_task_stats() -> Stats:
