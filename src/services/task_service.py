@@ -1,8 +1,8 @@
 from src.db.task_repository import (
    # db_create,
    # db_delete,
-    db_get_all
-   # db_get_by_id,
+    db_get_all,
+    db_get_by_id,
    # db_update
 )
 from src.models.task_models import Task #, Stats, TaskCreate, TaskPatch, TaskUpdate
@@ -14,9 +14,9 @@ def get_all_tasks(session: SessionDep) -> list[Task]:
     return db_get_all(session)
 
 
-# def get_task_by_id(task_id: int, session: SessionDep) -> Task | None:
-#     """Business layer to retrieve a single task by ID."""
-#     return db_get_by_id(task_id, session)
+def get_task_by_id(task_id: int, session: SessionDep) -> Task | None:
+    """Business layer to retrieve a single task by ID."""
+    return db_get_by_id(task_id, session)
 
 
 # def create_task(task_data: TaskCreate) -> Task:

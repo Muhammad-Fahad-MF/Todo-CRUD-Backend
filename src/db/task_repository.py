@@ -17,3 +17,6 @@ def seed_tasks(session: Session):
 def db_get_all(session: Session) -> list[Task] | None:
     seed_tasks(session)
     return session.exec(select(Task)).all()
+
+def db_get_by_id(task_id: int, session: Session) -> Task | None:
+    return session.get(Task, task_id)

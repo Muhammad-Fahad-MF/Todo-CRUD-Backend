@@ -1,4 +1,4 @@
-from fastapi import APIRouter #, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from src.models.task_models import Task #, Stats, TaskCreate, TaskPatch, TaskUpdate, ResetResponse
 from src.services import task_service
 from src.db.database import SessionDep
@@ -26,19 +26,19 @@ def get_all_tasks(session: SessionDep):
 #     return task_service.get_task_stats()
 
 
-# @router.get(
-#     "/{id}",
-#     response_model=Task,
-#     summary="Retrieves a specific task",
-#     description="Fetches a task from tasks list by its unique id and returns its details.",
-# )
-# def get_task(id: int):
-#     task = task_service.get_task_by_id(id)
-#     if task is None:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with ID {id} not found!"
-#         )
-#     return task
+@router.get(
+    "/{id}",
+    response_model=Task,
+    summary="Retrieves a specific task",
+    description="Fetches a task from tasks list by its unique id and returns its details.",
+)
+def get_task(id: int, session: SessionDep):
+    task = task_service.get_task_by_id(id, session)
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with ID {id} not found!"
+        )
+    return task
 
 
 # @router.post(
