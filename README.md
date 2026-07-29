@@ -114,3 +114,18 @@ SQLite requires no setup at all as it comes with pyhton itself, Also as I used F
 
 ### Added Two Table Columns:
 When I added two new columns and started my fastapi server, it started normally but as soon as I hit GET /tasks endpoint it returned 500 Error Code and my terminal was full of errors, but it was one. It was not able to find new attributes of Task. So I researched and found out that either delete db or ALTER the table/migrate with alembic, So I used Alembic and migrate the table and put new columns of created_at and updated_at. 
+
+
+## AI VS ME Part 2:
+
+This time I gave the model lazy prompt without specifying everything. While the code is working but it is bit over engineered for some part and the main thing is it completely ignored SQLModel because I didnt specify it. But it is fun and new experience to read Raw SQL code.
+
+Prompt:
+```
+Its time to evolve the fast api backend program from saving tasks in list to a sqlite database inside tasks.db.
+
+Requirements:
+The program should seed 3 tasks if the db is empty.
+all endpoints will remain same and serve the same purpose. except remove that reset and seed endpoint.
+in get endpoint with search and filter also add an option for sort_by(title) in acs or desc order
+```

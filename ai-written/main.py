@@ -1,11 +1,59 @@
+import sqlite3
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
+# Database file path
+DB_FILE = "tasks.db"
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            done INTEGER NOT NULL
+        )
+    """)
+    conn.commit()
+    
+    # Seed 3 tasks if database table is empty
+    cursor.execute("SELECT COUNT(*) FROM tasks")
+    count = cursor.fetchone()[0]
+    if count == 0:
+        cursor.executemany(
+            "INSERT INTO tasks (id, title, done) VALUES (?, ?, ?)",
+            [
+                (1, "Task 1", 0),
+                (2, "Task 2", 1),
+                (3, "Task 3", 0)
+            ]
+        )
+        conn.commit()
+    conn.close()
+
+# Database initialization on application startup
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+# Initialize DB immediately on module load
+init_db()
+
 app = FastAPI(
     title="Todo CRUD API",
-    description="A robust FastAPI implementation of a Todo backend matching REST API conventions.",
-    version="1.0.0"
+    description="A robust FastAPI implementation of a Todo backend matching REST API conventions backed by SQLite.",
+    version="1.0.0",
+    lifespan=lifespan
 )
+
 
 # --- Pydantic Models for Validation ---
 
@@ -39,18 +87,6 @@ class RootResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str = Field(..., description="Backend health status")
 
-# --- In-Memory Data Storage ---
-
-# Initializing with 3 generic tasks
-tasks: list[Task] = [
-    Task(id=1, title="Task 1", done=False),
-    Task(id=2, title="Task 2", done=True),
-    Task(id=3, title="Task 3", done=False)
-]
-
-# ID counter initialized to 3 to match the generic tasks
-task_id_counter: int = 3
-
 
 # --- API Endpoints ---
 
@@ -68,8 +104,7 @@ def get_root():
         "PUT /tasks/{id}",
         "PATCH /tasks/{id}",
         "DELETE /tasks/{id}",
-        "GET /stats",
-        "POST /reset"
+        "GET /stats"
     ]
     return RootResponse(
         name="Todo CRUD API",
@@ -89,60 +124,102 @@ def get_health():
 @app.get("/tasks", response_model=list[Task], summary="Retrieve all tasks")
 def get_all_tasks(
     done: bool | None = Query(None, description="Filter tasks by completion status"),
-    search: str | None = Query(None, description="Search term to filter tasks by title")
+    search: str | None = Query(None, description="Search term to filter tasks by title"),
+    sort_by: str | None = Query(None, description="Field to sort by (e.g. 'title' or 'id')"),
+    order: str = Query("asc", description="Sort order: 'asc' or 'desc'")
 ):
     """
-    Returns the list of tasks. Allows optional filtering by completion status (done)
-    and searching by task title simultaneously.
+    Returns the list of tasks. Allows optional filtering by completion status (done),
+    searching by task title, and sorting by fields (e.g. title) in asc or desc order.
     """
-    filtered_tasks = tasks
-    
+    effective_order = order.lower()
+    if effective_order not in ["asc", "desc"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid order option. Must be 'asc' or 'desc'."
+        )
+
+    query = "SELECT id, title, done FROM tasks WHERE 1=1"
+    params = []
+
     if done is not None:
-        filtered_tasks = [t for t in filtered_tasks if t.done == done]
-        
+        query += " AND done = ?"
+        params.append(1 if done else 0)
+
     if search is not None:
-        search_stripped = search.strip().lower()
+        search_stripped = search.strip()
         if search_stripped:
-            filtered_tasks = [t for t in filtered_tasks if search_stripped in t.title.lower()]
-            
-    return filtered_tasks
+            query += " AND LOWER(title) LIKE ?"
+            params.append(f"%{search_stripped.lower()}%")
+
+    if sort_by is not None:
+        sort_field = sort_by.strip().lower()
+        if sort_field == "title":
+            query += f" ORDER BY LOWER(title) {effective_order.upper()}, id ASC"
+        elif sort_field == "id":
+            query += f" ORDER BY id {effective_order.upper()}"
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid sort_by field '{sort_by}'. Allowed fields are 'title' and 'id'."
+            )
+    else:
+        query += " ORDER BY id ASC"
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [Task(id=row["id"], title=row["title"], done=bool(row["done"])) for row in rows]
 
 
 @app.get("/tasks/{task_id}", response_model=Task, summary="Retrieve a specific task")
 def get_task(task_id: int):
     """
-    Retrieves a specific task from the list by its ID.
+    Retrieves a specific task from the database by its ID.
     Returns 404 if the task is not found.
     """
-    for task in tasks:
-        if task.id == task_id:
-            return task
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Task with ID {task_id} not found"
-    )
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, done FROM tasks WHERE id = ?", (task_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with ID {task_id} not found"
+        )
+
+    return Task(id=row["id"], title=row["title"], done=bool(row["done"]))
 
 
 @app.post("/tasks", response_model=Task, status_code=status.HTTP_201_CREATED, summary="Create a new task")
 def create_task(task_in: TaskCreate):
     """
-    Creates a new task. Increments the ID counter automatically.
+    Creates a new task in SQLite database.
     Returns 201 status code with the created task.
     """
-    global task_id_counter
-    
-    # Validate that title is not empty or just whitespace
     title_clean = task_in.title.strip()
     if not title_clean:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Title cannot be empty or whitespace only"
         )
-        
-    task_id_counter += 1
-    new_task = Task(id=task_id_counter, title=title_clean, done=task_in.done)
-    tasks.append(new_task)
-    return new_task
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO tasks (title, done) VALUES (?, ?)",
+        (title_clean, 1 if task_in.done else 0)
+    )
+    new_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+
+    return Task(id=new_id, title=title_clean, done=task_in.done)
 
 
 @app.put("/tasks/{task_id}", response_model=Task, summary="Update a task (Full Update)")
@@ -151,7 +228,6 @@ def update_task(task_id: int, task_in: TaskUpdate):
     Updates the entire task with the provided ID using PUT semantics.
     Requires both title and done status. Returns 404 if not found.
     """
-    # Validate that title is not empty or just whitespace
     title_clean = task_in.title.strip()
     if not title_clean:
         raise HTTPException(
@@ -159,16 +235,24 @@ def update_task(task_id: int, task_in: TaskUpdate):
             detail="Title cannot be empty or whitespace only"
         )
 
-    for index, task in enumerate(tasks):
-        if task.id == task_id:
-            updated_task = Task(id=task_id, title=title_clean, done=task_in.done)
-            tasks[index] = updated_task
-            return updated_task
-            
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Task with ID {task_id} not found"
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM tasks WHERE id = ?", (task_id,))
+    if cursor.fetchone() is None:
+        conn.close()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with ID {task_id} not found"
+        )
+
+    cursor.execute(
+        "UPDATE tasks SET title = ?, done = ? WHERE id = ?",
+        (title_clean, 1 if task_in.done else 0, task_id)
     )
+    conn.commit()
+    conn.close()
+
+    return Task(id=task_id, title=title_clean, done=task_in.done)
 
 
 @app.patch("/tasks/{task_id}", response_model=Task, summary="Patch a task (Partial Update)")
@@ -177,14 +261,12 @@ def patch_task(task_id: int, task_in: TaskPatch):
     Partially updates a task with the provided ID using PATCH semantics.
     Accepts title, done, or both. Returns 404 if not found.
     """
-    # Ensure at least one update parameter is provided
     if task_in.title is None and task_in.done is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="At least one field ('title' or 'done') must be provided for update"
         )
-        
-    # Check that if title is provided, it is not empty/whitespace
+
     title_clean = None
     if task_in.title is not None:
         title_clean = task_in.title.strip()
@@ -194,19 +276,29 @@ def patch_task(task_id: int, task_in: TaskPatch):
                 detail="Title cannot be empty or whitespace only"
             )
 
-    for index, task in enumerate(tasks):
-        if task.id == task_id:
-            new_title = title_clean if title_clean is not None else task.title
-            new_done = task_in.done if task_in.done is not None else task.done
-            
-            updated_task = Task(id=task_id, title=new_title, done=new_done)
-            tasks[index] = updated_task
-            return updated_task
-            
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Task with ID {task_id} not found"
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, done FROM tasks WHERE id = ?", (task_id,))
+    row = cursor.fetchone()
+
+    if row is None:
+        conn.close()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with ID {task_id} not found"
+        )
+
+    new_title = title_clean if title_clean is not None else row["title"]
+    new_done = (1 if task_in.done else 0) if task_in.done is not None else row["done"]
+
+    cursor.execute(
+        "UPDATE tasks SET title = ?, done = ? WHERE id = ?",
+        (new_title, new_done, task_id)
     )
+    conn.commit()
+    conn.close()
+
+    return Task(id=task_id, title=new_title, done=bool(new_done))
 
 
 @app.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a task")
@@ -215,15 +307,19 @@ def delete_task(task_id: int):
     Deletes a task by ID. Returns 204 status code and no content on success.
     Returns 404 if the task is not found.
     """
-    for index, task in enumerate(tasks):
-        if task.id == task_id:
-            tasks.pop(index)
-            return
-            
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Task with ID {task_id} not found"
-    )
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM tasks WHERE id = ?", (task_id,))
+    if cursor.fetchone() is None:
+        conn.close()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with ID {task_id} not found"
+        )
+
+    cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    conn.commit()
+    conn.close()
 
 
 @app.get("/stats", response_model=TaskStats, summary="Tasks statistics")
@@ -231,23 +327,19 @@ def get_stats():
     """
     Computes and returns the task statistics: total, completed, and pending tasks.
     """
-    total = len(tasks)
-    completed = sum(1 for t in tasks if t.done)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 
+            COUNT(*) as total, 
+            SUM(CASE WHEN done = 1 THEN 1 ELSE 0 END) as completed 
+        FROM tasks
+    """)
+    row = cursor.fetchone()
+    conn.close()
+
+    total = row["total"] if row and row["total"] is not None else 0
+    completed = row["completed"] if row and row["completed"] is not None else 0
     pending = total - completed
+
     return TaskStats(total=total, completed=completed, pending=pending)
-
-
-@app.post("/reset", summary="Reset tasks list")
-def reset_tasks():
-    """
-    Serves testing purposes: clears all current tasks and restores the 3 generic tasks.
-    Resets the task counter back to 3.
-    """
-    global tasks, task_id_counter
-    tasks = [
-        Task(id=1, title="Task 1", done=False),
-        Task(id=2, title="Task 2", done=True),
-        Task(id=3, title="Task 3", done=False)
-    ]
-    task_id_counter = 3
-    return {"message": "Tasks database reset successfully"}
