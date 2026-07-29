@@ -1,6 +1,6 @@
-from sqlmodel import select, func
+from sqlmodel import select, func, col
 from src.db.database import Session
-from src.models.task_models import Task
+from src.models.task_models import Task, SortOrder
 
 
 def seed_tasks(session: Session):
@@ -16,9 +16,20 @@ def seed_tasks(session: Session):
     session.commit()
 
 
-def db_get_all(session: Session) -> list[Task] | None:
+def db_get_all(search: str | None, status: bool | None, sorder: SortOrder | None, session: Session) -> list[Task] | None:
     seed_tasks(session)
-    return session.exec(select(Task)).all()
+    query = select(Task)
+    if search is not None:
+        query = query.where(col(Task.title).ilike(f"%{search}%"))
+    if status is not None:
+        query = query.where(Task.done == status)
+    if sorder is not None:
+        order_map = {
+            SortOrder.ASC: func.lower(Task.title).asc(),
+            SortOrder.DESC: func.lower(Task.title).desc(),
+        }
+        query = query.order_by(order_map[sorder])
+    return session.exec(query).all()
 
 
 def db_get_by_id(task_id: int, session: Session) -> Task | None:
@@ -53,3 +64,9 @@ def db_delete(task_id: int, session: Session) -> bool:
     session.commit()
     return True
 
+def db_get_count(session: Session) -> int:
+    return session.exec(select(func.count()).select_from(Task)).one()
+
+
+def db_get_completed_count(session: Session) -> int:
+    return session.exec(select(func.count()).select_from(Task).where(Task.done)).one()

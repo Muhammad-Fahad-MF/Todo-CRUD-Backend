@@ -3,15 +3,17 @@ from src.db.task_repository import (
     db_delete,
     db_get_all,
     db_get_by_id,
-    db_update
+    db_update,
+    db_get_count,
+    db_get_completed_count
 )
-from src.models.task_models import Task, TaskUpdate, TaskPatch #, Stats
+from src.models.task_models import Task, TaskUpdate, TaskPatch, SortOrder, Stats
 from sqlmodel import Session
 
 
-def get_all_tasks(session: Session) -> list[Task]:
+def get_all_tasks(search: str | None, status: bool | None, sorder: SortOrder | None, session: Session) -> list[Task]:
     """Business layer to retrieve all tasks with optional query filters."""
-    return db_get_all(session)
+    return db_get_all(search, status, sorder, session)
 
 
 def get_task_by_id(task_id: int, session: Session) -> Task | None:
@@ -64,16 +66,15 @@ def patch_task(task_id: int, task_data: TaskPatch, session: Session) -> Task | N
     return db_update(task_id=task_id, title=new_title, done=new_done, session= session)
 
 
-# def get_task_stats() -> Stats:
-#     """Business layer to compute task statistics (total, completed, pending)."""
-#     all_tasks = db_get_all()
-#     total = len(all_tasks)
-#     completed = sum(1 for t in all_tasks if t.done)
-#     return Stats(
-#         total_tasks=total,
-#         completed_tasks=completed,
-#         pending_tasks=total - completed,
-#     )
+def get_task_stats(session: Session) -> Stats:
+    """Business layer to compute task statistics (total, completed, pending)."""
+    total_count = db_get_count(session)
+    completed_count = db_get_completed_count(session)
+    return Stats(
+        total_tasks=total_count,
+        completed_tasks=completed_count,
+        pending_tasks=total_count - completed_count,
+    )
 
 
 # def reset_tasks() -> None:

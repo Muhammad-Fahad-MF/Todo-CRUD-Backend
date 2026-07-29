@@ -109,3 +109,8 @@ SQLite requires no setup at all as it comes with pyhton itself, Also as I used F
 #### Screenshot of the todo.db from DB Viewer:
 
 ![DB Viewer Database Screenshot](./database_screenshot.png)
+
+    
+
+### Added Two Table Columns:
+When I added two new columns and started my fastapi server, it started normally but as soon as I hit GET /tasks endpoint it returned 500 Error Code and my terminal was full of errors, but it was one. It was not able to find new attributes of Task. So I researched and found out that either delete db or ALTER the table/migrate with alembic, So I used Alembic and migrate the table and put new columns of created_at and updated_at. 

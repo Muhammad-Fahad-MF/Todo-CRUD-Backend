@@ -1,5 +1,13 @@
-from fastapi import APIRouter, HTTPException, status
-from src.models.task_models import Task, TaskCreate, TaskUpdate, TaskPatch #, ResetResponse, Stats
+from fastapi import APIRouter, HTTPException, status, Query
+from typing import Annotated
+from src.models.task_models import (
+    Task,
+    TaskCreate,
+    TaskUpdate,
+    TaskPatch,
+    SortOrder,
+    Stats
+)  # , ResetResponse
 from src.services import task_service
 from src.db.database import SessionDep
 
@@ -12,18 +20,25 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
     summary="Get all tasks",
     description="Fetches all tasks. If search or done query parameters are provided then it fetches only required filtered tasks.",
 )
-def get_all_tasks(session: SessionDep):
-    return task_service.get_all_tasks(session)
+def get_all_tasks(
+    session: SessionDep,
+    search: str | None = Query(
+        default=None, min_length=2, max_length=25, pattern=r"^[a-zA-Z0-9_ ]+$"
+    ),
+    status: bool | None = Query( default = None ),
+    sorder: Annotated[SortOrder | None, Query()] = None
+):
+    return task_service.get_all_tasks(search, status, sorder, session)
 
 
-# @router.get(
-#     "/stats",
-#     response_model=Stats,
-#     summary="Compute Statistics of tasks",
-#     description="Retrieves the stats of all tasks (total, completed, pending).",
-# )
-# def get_stats():
-#     return task_service.get_task_stats()
+@router.get(
+    "/stats",
+    response_model=Stats,
+    summary="Compute Statistics of tasks",
+    description="Retrieves the stats of all tasks (total, completed, pending).",
+)
+def get_stats(session: SessionDep):
+    return task_service.get_task_stats(session)
 
 
 @router.get(
@@ -36,7 +51,8 @@ def get_task(id: int, session: SessionDep):
     task = task_service.get_task_by_id(id, session)
     if task is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with ID {id} not found!"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task with ID {id} not found!",
         )
     return task
 
@@ -50,7 +66,7 @@ def get_task(id: int, session: SessionDep):
 )
 def create_task(payload: TaskCreate, session: SessionDep):
     try:
-        return task_service.create_task(title= payload.title, session = session)
+        return task_service.create_task(title=payload.title, session=session)
     except ValueError as err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
@@ -68,7 +84,8 @@ def update_task(id: int, payload: TaskUpdate, session: SessionDep):
         updated = task_service.update_task(id, payload, session)
         if updated is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with ID {id} not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Task with ID {id} not found",
             )
         return updated
     except ValueError as err:
@@ -102,16 +119,11 @@ def patch_task(id: int, task: TaskPatch, session: SessionDep):
         patched = task_service.patch_task(id, task, session)
         if patched is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Task with ID {id} not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Task with ID {id} not found",
             )
         return patched
     except ValueError as err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
         ) from err
-
-
-# @router.post("/reset", response_model=ResetResponse, summary="Reset tasks list to initial state")
-# def reset_tasks():
-#     task_service.reset_tasks()
-#     return ResetResponse(message="Tasks list successfully reset")

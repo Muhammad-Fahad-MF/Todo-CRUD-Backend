@@ -16,3 +16,4 @@ wheels/
 # Database file
 todo.db
 *.db
+*.sqlite3
