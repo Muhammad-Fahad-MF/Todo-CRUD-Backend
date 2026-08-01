@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
+from sqlmodel import text
 from pydantic import BaseModel
 import uvicorn
 
 from src.routes.task_routes import router as task_router
 from src.db.database import create_db_and_tables
+from src.db.database import SessionDep
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -49,9 +51,17 @@ def read_root():
     response_model=HealthStatus,
     summary="Health Route",
     description="Returns the operational status of the backend server.",
+    status_code=status.HTTP_200_OK
 )
-def check_health():
-    return HealthStatus(status="ok")
+def check_health(session: SessionDep):
+    try:
+        session.exec(text("SELECT 1")).scalar()
+        return HealthStatus(status = "ok")
+    except Exception as e:
+        raise HTTPException (
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Database connection failed: {str(e)}"
+        )
 
 
 if __name__ == "__main__":

@@ -56,6 +56,11 @@ For saving the tasks, this CRUD backend uses PostgreSQL inside a container using
 
 ![DB Viewer Database Screenshot](./pg-container-screenshot.png)
 
+---
+
+### Mortality Experiment (When not using volume):
+When I removed volume specifications from `compose.yaml`, and did `docker compose up`, then put some data. But after restart my changes were gone because I didnt specify any volume, so postgres image created a temporary one and discarded it when container is destroyed, so we lost all cahnges. That's why we use dedicated volumes for our application.
+
 
 ---
 ### Mortality Experiment (When Using In-Memory List):

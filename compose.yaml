@@ -10,7 +10,13 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes: [taskdata:/var/lib/postgresql]
-    
+    volumes:
+      - taskdata:/var/lib/postgresql
+  redis:
+    image: redis:alpine
+    volumes:
+      - redisdata:/data
+
 volumes:
   taskdata:
+  redisdata:
