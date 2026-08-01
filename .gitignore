@@ -11,6 +11,7 @@ wheels/
 
 #Environment Variables File
 .env
+.env.local
 
 # Database file
 todo.db

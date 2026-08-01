@@ -1,12 +1,13 @@
 # TODO CRUD
-It is a todo CRUD(create, read, update, and delete) backend, which is developed with the help of FastAPI(Backend Framework for python). For simplicity and learning phase of a framework it utilizes python list which is in memory and disappears when program ended.
+It is a todo CRUD(create, read, update, and delete) backend, which is developed with the help of FastAPI(Backend Framework for python). And for data persistence we used PostgreSQL and SQLModel to store data in postgres.
 
 ## Setup:
-Since this assignment was setup with the help of **uv** so we rely on uv package manager.
+Since this backend is setup using docker, so we will use docker and eliminate "It works on my pc" error for good.
 
 1. After cloning using `git clone`, open project directory by `cd Todo-CRUD`.
-2. To install dependencies in order to run the backend, Use `uv sync`.
-3. Start the server, by `uv run fastapi dev` command.
+2. Create a .env file by using .env.example and replace the generic secrets to your own choice.
+3. After setting up secrets, use `docker compose up` to start your containers.
+4. Open browser or curl localhost:8000
 
 
 ## Endpoints: 
@@ -21,7 +22,6 @@ Since this assignment was setup with the help of **uv** so we rely on uv package
 | **PUT** | "/tasks/{id}" | Updates the whole body of the provided ID task. |
 | **PATCH** | "/tasks/{id}" | Updates either one or all attributes of task body |
 | **DELETE** | "/tasks/{id}" | Deltes the task with provided ID. |
-| **POST** | "/tasks/reset" | Resets the task list into its original state with 3 testing tasks. |
 | **GET** | "/tasks/stats" | Compute the statistics of tasks in tasks list. |
 
 Checkout Swagger UI on `http://localhost:8000/docs` for more details about endpoints.
@@ -49,14 +49,23 @@ and here is its output:
 `{"id":6,"title":"Learn Next JS","done":false}`
 
 ---
-### Mortality Experiment:
+### Database:
+For saving the tasks, this CRUD backend uses PostgreSQL inside a container using official PostgreSQL 18+ image which saves its data inside a volume so that data is not lost when we do `docker compose down`.
+
+#### DB Container Screenshot of Data:
+
+![DB Viewer Database Screenshot](./pg-container-screenshot.png)
+
+
+---
+### Mortality Experiment (When Using In-Memory List):
 When I created some tasks, updated them and even deleted some. The get api was showing me all changes but as soon as I restart the server, all changes were gone. It happened because my changes were saving in RAM in the form of list in my pyhton program. To store it permanently so that I can access it even after program ends, I have to store it in my disk drive in the form of file. 
 
 ---
 
-### AI VS ME
+### AI VS ME (Assignment 01): 
 
-Below is the prompt I provided to Google Antigravity for this Assignment:
+Below is the prompt I provided to Google Antigravity for Assignment 01:
 
 #### Prompt: 
 ```
@@ -116,7 +125,7 @@ SQLite requires no setup at all as it comes with pyhton itself, Also as I used F
 When I added two new columns and started my fastapi server, it started normally but as soon as I hit GET /tasks endpoint it returned 500 Error Code and my terminal was full of errors, but it was one. It was not able to find new attributes of Task. So I researched and found out that either delete db or ALTER the table/migrate with alembic, So I used Alembic and migrate the table and put new columns of created_at and updated_at. 
 
 
-## AI VS ME Part 2:
+## AI VS ME (Assignment 02):
 
 This time I gave the model lazy prompt without specifying everything. While the code is working but it is bit over engineered for some part and the main thing is it completely ignored SQLModel because I didnt specify it. But it is fun and new experience to read Raw SQL code.
 
