@@ -5,6 +5,7 @@ from pydantic import BaseModel
 import uvicorn
 
 from src.routes.task_routes import router as task_router
+from src.routes.auth_routes import router as auth_router
 from src.db.database import create_db_and_tables
 from src.db.database import SessionDep
 
@@ -24,6 +25,7 @@ app = FastAPI(
 
 # Register routes
 app.include_router(task_router)
+app.include_router(auth_router)
 
 
 class RootInfo(BaseModel):
