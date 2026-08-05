@@ -1,15 +1,16 @@
 from contextlib import asynccontextmanager
-from typing import Annotated
-from fastapi import FastAPI, HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import FastAPI, HTTPException, status
 from sqlmodel import text
 from pydantic import BaseModel
 import uvicorn
 
 from src.routes.task_routes import router as task_router
 from src.routes.auth_routes import router as auth_router
+from src.routes.public_protected_routes import router as data_router
 from src.db.database import create_db_and_tables
 from src.db.database import SessionDep
+
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
@@ -28,7 +29,7 @@ app = FastAPI(
 # Register routes
 app.include_router(task_router)
 app.include_router(auth_router)
-
+app.include_router(data_router)
 
 class RootInfo(BaseModel):
         name: str
@@ -66,19 +67,6 @@ def check_health(session: SessionDep):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Database connection failed: {str(e)}"
         )
-
-oauth2scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-@app.get("/public/info")
-def get_public_data():
-    return {"public data": "It is public"}
-
-
-@app.get("/protected/info")
-def get_protected_data(token: Annotated[str, Depends(oauth2scheme)]):
-     if not token:
-          raise HTTPException(status_code= status.HTTP_401_UNAUTHORIZED, detail="Login to access this")
-     return {"protected data": "this is private data"}
 
 
 if __name__ == "__main__":
