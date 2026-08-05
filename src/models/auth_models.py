@@ -1,6 +1,13 @@
 import re
 import unicodedata
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+
+class User(BaseModel):
+    id: str
+    name: str | None = None
+    email: str
+    created_at: datetime
 
 class SignupReq(BaseModel):
     name: str = Field(min_length=2, max_length=50, description="User full name")
