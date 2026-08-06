@@ -1,10 +1,10 @@
 from typing import Annotated
 from fastapi import Depends, APIRouter, HTTPException, status
 from src.models.auth_models import User
-from src.routes.deps import oauth2scheme, verify_token
+from src.routes.deps import security, verify_token, HTTPAuthorizationCredentials
 
 
-router = APIRouter(prefix= "/data")
+router = APIRouter(prefix="/data")
 
 
 @router.get("/public/info")
@@ -13,9 +13,11 @@ def get_public_data():
 
 
 @router.get("/protected/info")
-def get_protected_data(token: Annotated[str, Depends(oauth2scheme)]):
-    if not token:
-        raise HTTPException(status_code= status.HTTP_401_UNAUTHORIZED, detail="No token")
+def get_protected_data(
+    token: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+):
+    if not token.credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No token")
     return {"private_data": "This data is private"}
 
 
