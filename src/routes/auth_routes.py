@@ -1,11 +1,11 @@
-from fastapi import APIRouter, HTTPException, status
-from src.models.auth_models import SignupReq, LoginReq
-from src.db.sb_db import supabase
+from fastapi import APIRouter, HTTPException, status, Depends
+from typing import Annotated
 from supabase import AuthApiError
-
+from src.db.sb_db import supabase
+from src.models.auth_models import SignupReq, LoginReq, User
+from src.routes.deps import verify_token, oauth2scheme
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-from fastapi import APIRouter, HTTPException, status
 
 
 @router.post("/signup")
@@ -38,13 +38,7 @@ async def signup(payload: SignupReq):
         raise HTTPException(
             status_code=e.status or status.HTTP_400_BAD_REQUEST,
             detail=e.message
-        )
-    except Exception as e:
-        # Network failures, bad Supabase secrets, or connection drops -> 500
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error during registration."
-        )
+        ) from e
 
 
 @router.post("/login")
@@ -72,10 +66,15 @@ async def login(payload: LoginReq):
         raise HTTPException(
             status_code = e.status or status.HTTP_400_BAD_REQUEST,
             detail= e.message
-        )
+        ) from e
 
-    except Exception as e:
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(token: str = Depends(oauth2scheme)):
+    try:
+        supabase.auth.admin.sign_out(token, scope= "local")
+    except AuthApiError as e:
         raise HTTPException(
-            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail= "Internal server error during signing in."
-        )
+            status_code = e.status or status.HTTP_400_BAD_REQUEST,
+            detail= e.message
+        ) from e

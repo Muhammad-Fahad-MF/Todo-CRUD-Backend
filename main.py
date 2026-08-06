@@ -48,7 +48,7 @@ class HealthStatus(BaseModel):
     description="Retrieved JSON includes name, version, and a list of endpoints.",
 )
 def read_root():
-    return RootInfo(name="Task API", version="1.0", endpoints=["/tasks", "/tasks/stats"])
+    return RootInfo(name="Task API", version="1.0", endpoints=["/tasks","/tasks/stats"])
 
 
 @app.get(
@@ -66,7 +66,7 @@ def check_health(session: SessionDep):
         raise HTTPException (
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Database connection failed: {str(e)}"
-        )
+        ) from e
 
 
 if __name__ == "__main__":
