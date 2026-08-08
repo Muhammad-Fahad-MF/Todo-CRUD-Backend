@@ -53,3 +53,8 @@ For saving the tasks, this CRUD backend uses PostgreSQL inside a container using
 ![DB Viewer Database Screenshot](./pg-container-screenshot.png)
 
 ---
+
+### What is inside JWT:
+A jwt(json web token) consists of header.payload.signature, header contains the info about token like if it is a jwt and what algorithm is used, payload contains user info like name, email, id, etc, and signature contains a byte value encoded by our secret key after performing operation on header and payload, to verify whether token is valid.
+
+
