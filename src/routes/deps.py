@@ -28,7 +28,7 @@ def verify_token(
         return User(
             id=user.user.id,
             name=user.user.user_metadata.get("display_name"),
-            email=user.user.email,
+            email=str(user.user.email),
             created_at=user.user.created_at,
         )
     except AuthApiError as e:

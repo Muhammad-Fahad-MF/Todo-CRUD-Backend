@@ -69,4 +69,17 @@ class LoginReq(BaseModel):
         if isinstance(value, str):
             return value.strip().lower()
         return value
+
+
+class LoginRes(BaseModel):
+    user_id: str
+    email: str
+    display_name: str
+    access_token: str
+
+
+class SignupRes(BaseModel):
+    user_id: str
+    email: str
+    display_name: str
     

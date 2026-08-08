@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import text
 from pydantic import BaseModel
 import uvicorn
@@ -25,9 +26,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Enable CORS for frontend integration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Register routes
-app.include_router(task_router)
 app.include_router(auth_router)
+app.include_router(task_router)
 app.include_router(data_router)
 
 

@@ -24,3 +24,19 @@ select = [
     "PERF",  # Required for Examples 1 & 5 (PERF401, PERF601)
 ]
 
+[dependency-groups]
+dev = [
+    "pyright>=1.1.411",
+]
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/node_modules", "**/__pycache__", ".venv"]
+
+venvPath = "."
+venv = ".venv"
+
+typeCheckingMode = "basic"
+pythonVersion = "3.12"
+
+reportMissingTypeStubs = false

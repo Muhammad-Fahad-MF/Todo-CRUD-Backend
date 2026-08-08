@@ -6,6 +6,7 @@ from datetime import datetime, UTC
 
 class Task(SQLModel, table= True):
     id: int | None = Field(default=None, primary_key=True)
+    user_id: str = Field(nullable=False)
     title: str = Field(min_length=3, max_length=55)
     done: bool = Field(default= False)
     created_at: datetime = Field(

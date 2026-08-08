@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from typing import Annotated
 from src.models.task_models import (
     Task,
@@ -6,10 +6,12 @@ from src.models.task_models import (
     TaskUpdate,
     TaskPatch,
     SortOrder,
-    Stats
-)  # , ResetResponse
+    Stats,
+)
+from src.models.auth_models import User
 from src.services import task_service
 from src.db.database import SessionDep
+from src.routes.deps import verify_token
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
@@ -18,37 +20,40 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
     "",
     response_model=list[Task],
     summary="Get all tasks",
-    description="Fetches all tasks. If search or done query parameters are provided then it fetches only required filtered tasks.",
+    description="Fetches all tasks. If search or done query parameters are provided then it fetches only required filtered tasks."
 )
 def get_all_tasks(
+    user: Annotated[User, Depends(verify_token)],
     session: SessionDep,
     search: str | None = Query(
         default=None, min_length=2, max_length=25, pattern=r"^[a-zA-Z0-9_ ]+$"
     ),
-    status: bool | None = Query( default = None ),
-    sorder: Annotated[SortOrder | None, Query()] = None
+    status: bool | None = Query(default=None),
+    sorder: Annotated[SortOrder | None, Query()] = None,
 ):
-    return task_service.get_all_tasks(search, status, sorder, session)
+    return task_service.get_all_tasks(user.id, search, status, sorder, session)
 
 
 @router.get(
     "/stats",
     response_model=Stats,
     summary="Compute Statistics of tasks",
-    description="Retrieves the stats of all tasks (total, completed, pending).",
+    description="Retrieves the stats of all tasks (total, completed, pending)."
 )
-def get_stats(session: SessionDep):
-    return task_service.get_task_stats(session)
+def get_stats(user: Annotated[User, Depends(verify_token)], session: SessionDep):
+    return task_service.get_task_stats(user.id, session)
 
 
 @router.get(
     "/{id}",
     response_model=Task,
     summary="Retrieves a specific task",
-    description="Fetches a task from tasks list by its unique id and returns its details.",
+    description="Fetches a task from tasks list by its unique id and returns its details."
 )
-def get_task(id: int, session: SessionDep):
-    task = task_service.get_task_by_id(id, session)
+def get_task(
+    user: Annotated[User, Depends(verify_token)], id: int, session: SessionDep
+):
+    task = task_service.get_task_by_id(user.id, id, session)
     if task is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -62,11 +67,15 @@ def get_task(id: int, session: SessionDep):
     response_model=Task,
     status_code=status.HTTP_201_CREATED,
     summary="Create a task",
-    description="Appends a new task in tasks list and assigns it a unique id.",
+    description="Appends a new task in tasks list and assigns it a unique id."
 )
-def create_task(payload: TaskCreate, session: SessionDep):
+def create_task(
+    user: Annotated[User, Depends(verify_token)],
+    payload: TaskCreate,
+    session: SessionDep,
+):
     try:
-        return task_service.create_task(title=payload.title, session=session)
+        return task_service.create_task(user.id, title=payload.title, session=session)
     except ValueError as err:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(err)
@@ -77,11 +86,16 @@ def create_task(payload: TaskCreate, session: SessionDep):
     "/{id}",
     response_model=Task,
     summary="Update a task full body",
-    description="Performs a complete replacement of an existing task's properties.",
+    description="Performs a complete replacement of an existing task's properties."
 )
-def update_task(id: int, payload: TaskUpdate, session: SessionDep):
+def update_task(
+    user: Annotated[User, Depends(verify_token)],
+    id: int,
+    payload: TaskUpdate,
+    session: SessionDep,
+):
     try:
-        updated = task_service.update_task(id, payload, session)
+        updated = task_service.update_task(user.id, id, payload, session)
         if updated is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -99,9 +113,11 @@ def update_task(id: int, payload: TaskUpdate, session: SessionDep):
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Deletes task",
 )
-def delete_task(id: int, session: SessionDep):
+def delete_task(
+    user: Annotated[User, Depends(verify_token)], id: int, session: SessionDep
+):
     try:
-        task_service.delete_task(id, session)
+        task_service.delete_task(user.id, id, session)
     except ValueError as err:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(err)
@@ -112,11 +128,16 @@ def delete_task(id: int, session: SessionDep):
     "/{id}",
     response_model=Task,
     summary="Updates one or more attributes of a task",
-    description="Updates the provided attributes of task (done, title, or both).",
+    description="Updates the provided attributes of task (done, title, or both)."
 )
-def patch_task(id: int, task: TaskPatch, session: SessionDep):
+def patch_task(
+    user: Annotated[User, Depends(verify_token)],
+    id: int,
+    task: TaskPatch,
+    session: SessionDep,
+):
     try:
-        patched = task_service.patch_task(id, task, session)
+        patched = task_service.patch_task(user.id, id, task, session)
         if patched is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
